@@ -17,6 +17,7 @@ import {
   getDataSources,
   testConnection,
   updateDataSourceById,
+  handleSetDefaultDatasourceAfterDeletion,
 } from '../utils';
 import { getEditBreadcrumbs } from '../breadcrumbs';
 import { EditDataSourceForm } from './components/edit_form/edit_data_source_form';
@@ -38,6 +39,7 @@ export const EditDataSource: React.FunctionComponent<RouteComponentProps<{ id: s
 ) => {
   /* Initialization */
   const {
+    uiSettings,
     savedObjects,
     setBreadcrumbs,
     http,
@@ -83,6 +85,13 @@ export const EditDataSource: React.FunctionComponent<RouteComponentProps<{ id: s
     }
   };
 
+/* Handle default - set default data source*/
+  const handleSetDefault = async () => {
+    await uiSettings.set('defaultDataSource', dataSource.id);
+  }
+
+  const isDefault = uiSettings.get('defaultDataSource') === dataSourceID;
+
   /* Handle submit - create data source*/
   const handleSubmit = async (attributes: DataSourceAttributes) => {
     await updateDataSourceById(savedObjects.client, dataSourceID, attributes);
@@ -103,6 +112,12 @@ export const EditDataSource: React.FunctionComponent<RouteComponentProps<{ id: s
     try {
       await deleteDataSourceById(props.match.params.id, savedObjects.client);
       props.history.push('');
+      
+      // If deleted datasource is the default datasource, then set the first existing
+      // datasource as default datasource.
+      if (uiSettings.get('defaultDataSource') === dataSourceID) {
+        await handleSetDefaultDatasourceAfterDeletion(savedObjects.client, uiSettings);
+      }
     } catch (e) {
       setIsLoading(false);
       handleDisplayToastMessage({
@@ -129,6 +144,8 @@ export const EditDataSource: React.FunctionComponent<RouteComponentProps<{ id: s
             existingDataSource={dataSource}
             existingDatasourceNamesList={existingDatasourceNamesList}
             onDeleteDataSource={handleDelete}
+            onSetDefaultDataSource={handleSetDefault}
+            isDefault={isDefault}
             handleSubmit={handleSubmit}
             displayToastMessage={handleDisplayToastMessage}
             handleTestConnection={handleTestConnection}

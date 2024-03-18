@@ -28,7 +28,7 @@ import {
 } from '../../../../opensearch_dashboards_react/public';
 import { DataSourceManagementContext, DataSourceTableItem, ToastMessageItem } from '../../types';
 import { CreateButton } from '../create_button';
-import { deleteMultipleDataSources, getDataSources } from '../utils';
+import { deleteMultipleDataSources, getDataSources, handleSetDefaultDatasourceAfterDeletion } from '../utils';
 import { LoadingMask } from '../loading_mask';
 
 /* Table config */
@@ -50,6 +50,7 @@ export const DataSourceTable = ({ history }: RouteComponentProps) => {
     setBreadcrumbs,
     savedObjects,
     notifications: { toasts },
+    uiSettings,
   } = useOpenSearchDashboards<DataSourceManagementContext>().services;
 
   /* Component state variables */
@@ -221,6 +222,7 @@ export const DataSourceTable = ({ history }: RouteComponentProps) => {
 
     deleteMultipleDataSources(savedObjects.client, selectedDataSources)
       .then(() => {
+        setDefaultDataSource();
         setSelectedDataSources([]);
         // Fetch data sources
         fetchDataSources();
@@ -237,6 +239,16 @@ export const DataSourceTable = ({ history }: RouteComponentProps) => {
         setIsDeleting(false);
       });
   };
+
+  /* if default datasource is deleted, set the first datasource as default */
+  const setDefaultDataSource = async () => {
+    for (const dataSource of selectedDataSources) {
+      if (uiSettings.get('defaultDataSource') === dataSource.id) {
+        await handleSetDefaultDatasourceAfterDeletion(savedObjects.client, uiSettings);
+        return;
+      }
+    }
+  }
 
   /* Table selection handlers */
   const onSelectionChange = (selected: DataSourceTableItem[]) => {

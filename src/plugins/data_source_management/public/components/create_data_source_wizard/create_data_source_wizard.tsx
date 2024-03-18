@@ -26,6 +26,7 @@ export const CreateDataSourceWizard: React.FunctionComponent<CreateDataSourceWiz
 ) => {
   /* Initialization */
   const {
+    uiSettings,
     savedObjects,
     setBreadcrumbs,
     http,
@@ -70,6 +71,8 @@ export const CreateDataSourceWizard: React.FunctionComponent<CreateDataSourceWiz
     try {
       await createSingleDataSource(savedObjects.client, attributes);
       props.history.push('');
+      // Set the first create data source as default data source. 
+      await handleSetDefaultDatasource();
     } catch (e) {
       setIsLoading(false);
       handleDisplayToastMessage({
@@ -78,6 +81,14 @@ export const CreateDataSourceWizard: React.FunctionComponent<CreateDataSourceWiz
       });
     }
   };
+
+  const handleSetDefaultDatasource = async () => {
+    const listOfDataSources: DataSourceTableItem[] = await getDataSources(savedObjects.client);
+    if( Array.isArray(listOfDataSources) && listOfDataSources.length == 1) {
+      const datasourceId = listOfDataSources[0].id;
+      await uiSettings.set('defaultDataSource', datasourceId);
+    }
+  }
 
   /* Handle submit - create data source*/
   const handleTestConnection = async (attributes: DataSourceAttributes) => {
